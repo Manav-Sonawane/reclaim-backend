@@ -23,21 +23,25 @@ const itemSchema = new mongoose.Schema(
       type: String,
     },
     location: {
-      area: {
+      type: {
         type: String,
-        required: true,
+        enum: ["Point"],
+        default: "Point",
       },
-      lat: Number,
-      lng: Number,
+      coordinates: {
+        type: [Number],
+        required: true,
+      }, // [lng, lat]
+      address: { type: String },
     },
     images: [
       {
-        type: String, // URL (R2 later)
+        type: String, // URL (R2)
       },
     ],
     status: {
-      type: String,
-      enum: ["open", "matched", "claimed", "returned"],
+      type: String, // 'open', 'matched', 'claimed', 'resolved'
+      enum: ["open", "matched", "claimed", "resolved"],
       default: "open",
     },
     user: {
@@ -45,8 +49,11 @@ const itemSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    contact_info: { type: String }, // Optional: phone or email
   },
   { timestamps: true }
 );
+
+itemSchema.index({ location: "2dsphere" }); // Geospatial index
 
 export default mongoose.model("Item", itemSchema);

@@ -6,9 +6,13 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const PORT = process.env.PORT || 5000;
+import { Server } from "socket.io";
+import Chat from "./models/chat.js";
+
+const PORT = process.env.PORT || 5001;
 
 const server = http.createServer(app);
+
 
 connectDB();
 initSocket(server);
