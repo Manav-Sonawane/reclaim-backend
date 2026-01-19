@@ -93,3 +93,23 @@ export const getChatById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+// @desc    Check if user has unread messages
+// @route   GET /api/chats/unread
+// @access  Private
+export const getUnreadCount = async (req, res) => {
+  try {
+    const hasUnread = await Chat.exists({
+      participants: req.user._id,
+      messages: { 
+        $elemMatch: { 
+          sender: { $ne: req.user._id }, 
+          read: false 
+        } 
+      }
+    });
+
+    res.json({ hasUnread: !!hasUnread });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -1,28 +1,5 @@
 import multer from "multer";
-import path from "path";
-
-// Use memory storage for R2 uploads (files stored in memory before uploading to R2)
-const storage = multer.memoryStorage();
-
-// --- Local Disk Storage (Fallback - Commented Out) ---
-// import fs from "fs";
-// const __dirname = path.resolve();
-// const uploadDir = path.join(__dirname, "uploads");
-// 
-// if (!fs.existsSync(uploadDir)) {
-//   fs.mkdirSync(uploadDir, { recursive: true });
-// }
-// 
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, uploadDir);
-//   },
-//   filename: (req, file, cb) => {
-//     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-//     cb(null, uniqueSuffix + path.extname(file.originalname));
-//   },
-// });
-// --------------------------
+import { storage } from "../config/cloudinary.js";
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith("image/")) {
