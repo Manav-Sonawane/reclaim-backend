@@ -19,9 +19,9 @@ const makeAdmin = async () => {
     const user = await User.findOne({ email });
 
     if (user) {
-      user.role = "admin";
+      user.role = "super_admin";
       await user.save();
-      console.log(`Successfully promoted ${user.name} (${user.email}) to ADMIN.`);
+      console.log(`Successfully promoted ${user.name} (${user.email}) to SUPER ADMIN.`);
     } else {
       console.log(`User with email ${email} not found.`);
     }

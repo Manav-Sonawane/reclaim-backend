@@ -53,9 +53,19 @@ export const getAllItems = async (req, res) => {
 // @access  Private/Admin
 export const updateUserRole = async (req, res) => {
   try {
+    // Only Super Admin can change roles
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only Super Admins can manage roles" });
+    }
+
     const user = await User.findById(req.params.id);
 
     if (user) {
+      // Prevent modifying another Super Admin (or self, though UI blocks self)
+      if (user.role === "super_admin") {
+         return res.status(403).json({ message: "Cannot modify Super Admin" });
+      }
+
       user.role = req.body.role || user.role;
       await user.save();
       res.json({ message: "User role updated" });
