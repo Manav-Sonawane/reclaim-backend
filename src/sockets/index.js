@@ -2,10 +2,16 @@ import { Server } from "socket.io";
 import Message from "../models/message.js";
 
 export const initSocket = (server) => {
+  // Parse CORS origins (supports multiple comma-separated origins)
+  const corsOrigins = process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+    : ["http://localhost:3000"];
+
   const io = new Server(server, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
       methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 
