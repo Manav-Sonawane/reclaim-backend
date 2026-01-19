@@ -85,10 +85,15 @@ export const getMe = async (req, res) => {
 // GOOGLE OAUTH LOGIN
 export const googleAuth = async (req, res) => {
   try {
+    console.log("Google auth request body:", req.body);
     const { token } = req.body;
 
     if (!token) {
-      return res.status(400).json({ message: "Google token required" });
+      console.log("Token missing from request");
+      return res.status(400).json({ 
+        message: "Google token required",
+        receivedFields: Object.keys(req.body)
+      });
     }
 
     // Verify Google token
