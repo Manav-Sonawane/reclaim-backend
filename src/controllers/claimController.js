@@ -28,7 +28,7 @@ export const createClaim = async (req, res) => {
     const claim = await Claim.create({
       item: itemId,
       claimant: req.user._id,
-      message: answers, // Mapping 'answers' to 'message' based on schema or keeping generic
+      message: Array.isArray(answers) ? answers.join('\n') : answers,
       status: "pending",
     });
 
@@ -50,6 +50,20 @@ export const getClaims = async (req, res) => {
     const claims = await Claim.find({})
       .populate("item", "title")
       .populate("claimant", "name email")
+      .sort({ createdAt: -1 });
+    res.json(claims);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get user's claims
+// @route   GET /api/claims/user/me
+// @access  Private
+export const getMyClaims = async (req, res) => {
+  try {
+    const claims = await Claim.find({ claimant: req.user._id })
+      .populate("item", "title images type status") // Populate needed item fields
       .sort({ createdAt: -1 });
     res.json(claims);
   } catch (error) {
@@ -82,6 +96,64 @@ export const updateClaimStatus = async (req, res) => {
     }
 
     res.json(claim);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// @desc    Update claim message (proof)
+// @route   PUT /api/claims/:id/message
+// @access  Private
+export const updateClaimMessage = async (req, res) => {
+  try {
+    const { message } = req.body;
+    const claim = await Claim.findById(req.params.id);
+
+    if (!claim) {
+      return res.status(404).json({ message: "Claim not found" });
+    }
+
+    // Ensure only the claimant can edit
+    if (claim.claimant.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to edit this claim" });
+    }
+
+    // Ensure only pending claims can be edited
+    if (claim.status !== "pending") {
+      return res.status(400).json({ message: "Cannot edit claim after it has been processed" });
+    }
+
+    claim.message = message;
+    await claim.save();
+
+    res.json(claim);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// @desc    Delete claim (only if pending)
+// @route   DELETE /api/claims/:id
+// @access  Private
+export const deleteClaim = async (req, res) => {
+  try {
+    const claim = await Claim.findById(req.params.id);
+
+    if (!claim) {
+      return res.status(404).json({ message: "Claim not found" });
+    }
+
+    // Ensure only the claimant can delete
+    if (claim.claimant.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to delete this claim" });
+    }
+
+    // Ensure only pending claims can be deleted
+    if (claim.status !== "pending") {
+      return res.status(400).json({ message: "Cannot delete claim after it has been processed" });
+    }
+
+    await claim.deleteOne();
+
+    res.json({ message: "Claim deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -33,7 +33,7 @@ export const createItem = async (req, res) => {
       title,
       description,
       category,
-      // date, // Optional if not in schema, but good to have
+      date,
       images,
       location: locObj,
       contact_info,
