@@ -85,25 +85,38 @@ export const getMe = async (req, res) => {
 // GOOGLE OAUTH LOGIN
 export const googleAuth = async (req, res) => {
   try {
-    console.log("Google auth request body:", req.body);
-    const { token } = req.body;
+    console.log("=== Google Auth Debug ===");
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+    console.log("Request headers:", JSON.stringify(req.headers, null, 2));
+    console.log("Content-Type:", req.headers['content-type']);
+    
+    const { token, credential, idToken } = req.body;
+    
+    // Accept token from multiple field names for flexibility
+    const googleToken = token || credential || idToken;
 
-    if (!token) {
-      console.log("Token missing from request");
+    if (!googleToken) {
+      console.log("❌ Token missing from request");
+      console.log("Received fields:", Object.keys(req.body));
       return res.status(400).json({ 
-        message: "Google token required",
-        receivedFields: Object.keys(req.body)
+        message: "Google token required. Expected field: 'token', 'credential', or 'idToken'",
+        receivedFields: Object.keys(req.body),
+        hint: "Make sure you're sending the Google ID token in the request body"
       });
     }
 
+    console.log("✓ Token received, verifying with Google...");
+
     // Verify Google token
     const ticket = await googleClient.verifyIdToken({
-      idToken: token,
+      idToken: googleToken,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, picture } = payload;
+    
+    console.log("✓ Token verified for user:", email);
 
     // Check if user exists
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
