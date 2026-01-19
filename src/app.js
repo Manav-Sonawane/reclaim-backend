@@ -7,6 +7,7 @@ import matchRoutes from "./routes/matchRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import claimRoutes from "./routes/claimRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 const app = express();
 
@@ -24,10 +25,11 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/items", itemRoutes);
-app.use("/api/items", matchRoutes); // Note: verify if this conflicts or should be merged
+app.use("/api/items", matchRoutes); 
 app.use("/api/chats", chatRoutes);
 app.use("/api/claims", claimRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Serve static uploads
 import path from "path";
