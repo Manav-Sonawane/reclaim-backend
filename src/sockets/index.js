@@ -17,13 +17,18 @@ export const initSocket = (server) => {
     });
 
     socket.on("send_message", async (data) => {
-      const message = new Message({
-        roomId: data.roomId,
-        sender: data.sender,
-        text: data.text,
-      });
-      await message.save();
-      io.to(data.roomId).emit("receive_message", data);
+      try {
+        const message = new Message({
+          roomId: data.roomId,
+          sender: data.sender,
+          text: data.text,
+        });
+        await message.save();
+        io.to(data.roomId).emit("receive_message", data);
+      } catch (err) {
+        console.error("Message save error:", err);
+        socket.emit("error", { message: "Failed to send message" });
+      }
     });
 
     socket.on("disconnect", () => {
