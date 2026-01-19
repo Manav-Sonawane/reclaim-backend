@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import Message from "../models/message.js";
+import Chat from "../models/chat.js";
 
 export const initSocket = (server) => {
   // Parse CORS origins (supports multiple comma-separated origins)
@@ -24,13 +24,31 @@ export const initSocket = (server) => {
 
     socket.on("send_message", async (data) => {
       try {
-        const message = new Message({
-          roomId: data.roomId,
-          sender: data.sender,
-          text: data.text,
+        // Find the chat
+        const chat = await Chat.findById(data.chatId);
+        if (!chat) {
+             console.error("Chat not found for roomId:", data.chatId);
+             return;
+        }
+
+        const newMessage = {
+            sender: data.senderId,
+            content: data.text,
+            timestamp: new Date(),
+            read: false
+        };
+
+        // Add to chat messages array
+        chat.messages.push(newMessage);
+        await chat.save();
+        
+        // Emit back to room with keys matching frontend expectation
+        io.to(data.chatId).emit("receive_message", {
+            sender: data.senderId,
+            text: data.text,
+            timestamp: newMessage.timestamp
         });
-        await message.save();
-        io.to(data.roomId).emit("receive_message", data);
+
       } catch (err) {
         console.error("Message save error:", err);
         socket.emit("error", { message: "Failed to send message" });
