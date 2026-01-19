@@ -130,9 +130,24 @@ export const googleAuth = async (req, res) => {
         await user.save();
       }
     } else {
-      // Create new user
+      // New User Logic
+      // If a custom name is NOT provided in the request, ask frontend to get it
+      const { name: customName } = req.body;
+      
+      if (!customName) {
+        return res.status(200).json({
+          requiresSignup: true,
+          googleProfile: {
+            email,
+            name, // Google's default name
+            picture
+          }
+        });
+      }
+
+      // Create new user with custom name
       user = await User.create({
-        name,
+        name: customName, // Use the name provided by user
         email,
         googleId,
         profilePicture: picture,
