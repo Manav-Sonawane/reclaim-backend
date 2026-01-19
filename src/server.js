@@ -1,11 +1,17 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import http from "http";
 import app from "./app.js";
-// import { initSocket } from "./scokets/index.js";
+import connectDB from "./config/db.js";
+
+const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(app);
 
-// initSocket(server);
+// Connect DB
+connectDB();
 
-server.listen(5000, () => {
-  console.log("Backend running on http://localhost:5000");
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
