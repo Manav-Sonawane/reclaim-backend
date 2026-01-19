@@ -1,4 +1,5 @@
 import Item from "../models/item.js";
+import { sendEmail } from "../utils/email.js";
 
 // CREATE ITEM
 export const createItem = async (req, res) => {
@@ -39,6 +40,44 @@ export const createItem = async (req, res) => {
       contact_info,
       user: req.user._id,
     });
+
+    // --- SMART MATCHING & NOTIFICATION ---
+    // If user posted "Found", find "Lost" items nearby.
+    // If user posted "Lost", find "Found" items nearby.
+    // We do this asynchronously so we don't block the response.
+    (async () => {
+        try {
+            const matchType = type === "lost" ? "found" : "lost";
+            const potentialMatches = await Item.find({
+                type: matchType,
+                category: category,
+                status: "open",
+                _id: { $ne: item._id },
+                location: {
+                    $near: {
+                        $geometry: {
+                            type: "Point",
+                            coordinates: item.location.coordinates
+                        },
+                        $maxDistance: 5000 // 5km radius for notifications
+                    }
+                }
+            }).populate('user');
+
+            for (const match of potentialMatches) {
+                if (match.user && match.user.email) {
+                    await sendEmail({
+                        to: match.user.email,
+                        subject: `New Potential Match for your ${matchType} item: ${match.title}`,
+                        text: `Hello ${match.user.name},\n\nA new item has been reported that matches the category and location of your ${matchType} item "${match.title}".\n\nTitle: ${item.title}\nDescription: ${item.description}\n\nCheck it out on Reclaim!\n\nBest,\nReclaim Team`,
+                        html: `<p>Hello <strong>${match.user.name}</strong>,</p><p>A new item has been reported that matches the category and location of your ${matchType} item <strong>"${match.title}"</strong>.</p><p><strong>New Item:</strong> ${item.title}<br><strong>Description:</strong> ${item.description}</p><p><a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/items/${item._id}">View Item</a></p><p>Best,<br>Reclaim Team</p>`
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("Error in matching notification:", err);
+        }
+    })();
 
     res.status(201).json(item);
   } catch (err) {

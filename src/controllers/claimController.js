@@ -1,5 +1,6 @@
 import Claim from "../models/claim.js";
 import Item from "../models/item.js";
+import { sendEmail } from "../utils/email.js";
 
 // @desc    Create a claim
 // @route   POST /api/claims
@@ -9,7 +10,7 @@ export const createClaim = async (req, res) => {
     const { itemId, answers } = req.body;
 
     // Check if item exists
-    const item = await Item.findById(itemId);
+    const item = await Item.findById(itemId).populate('user'); // Populate owner to get email
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
     }
@@ -31,6 +32,16 @@ export const createClaim = async (req, res) => {
       message: Array.isArray(answers) ? answers.join('\n') : answers,
       status: "pending",
     });
+
+    // Notify the item owner (the 'Finder') that someone is claiming it
+    if (item.user && item.user.email) {
+        await sendEmail({
+            to: item.user.email,
+            subject: `New Claim on your item: ${item.title}`,
+            text: `Hello ${item.user.name},\n\nSomeone has raised a claim on the item you found: "${item.title}".\n\nLogin to Reclaim to review their proof and approve/reject the claim.\n\nBest,\nReclaim Team`,
+            html: `<p>Hello <strong>${item.user.name}</strong>,</p><p>Someone has raised a claim on the item you found: <strong>"${item.title}"</strong>.</p><p><a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/dashboard">Login to Reclaim</a> to review their proof and approve/reject the claim.</p><p>Best,<br>Reclaim Team</p>`
+        });
+    }
 
     res.status(201).json(claim);
   } catch (error) {
