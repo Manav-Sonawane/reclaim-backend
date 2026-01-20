@@ -106,8 +106,21 @@ export const updateClaimStatus = async (req, res) => {
         return res.status(403).json({ message: "Not authorized to manage claims for this item" });
     }
 
+    // Populate claimant to get email
+    await claim.populate('claimant', 'name email');
+
     claim.status = status;
     await claim.save();
+
+    // Notify the claimant about the status update
+    if (claim.claimant && claim.claimant.email) {
+        await sendEmail({
+            to: claim.claimant.email,
+            subject: `Update on your claim for: ${item.title}`,
+            text: `Hello ${claim.claimant.name},\n\nYour claim for the item "${item.title}" has been ${status}.\n\n${status === 'approved' ? 'Please check your dashboard to start a chat with the finder.' : ''}\n\nBest,\nReclaim Team`,
+            html: `<p>Hello <strong>${claim.claimant.name}</strong>,</p><p>Your claim for the item <strong>"${item.title}"</strong> has been <strong>${status}</strong>.</p>${status === 'approved' ? `<p><a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/dashboard">Go to Dashboard</a> to start a chat with the finder.</p>` : ''}<p>Best,<br>Reclaim Team</p>`
+        });
+    }
 
     // If approved, mark item as in_progress and create chat
     if (status === "approved") {
