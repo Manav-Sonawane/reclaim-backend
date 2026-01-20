@@ -32,7 +32,7 @@ export const addComment = async (req, res) => {
     // Populate user info to return immediately
     const populatedComment = await Comment.findById(comment._id).populate(
       "user",
-      "name email"
+      "name email profilePicture"
     );
 
     res.status(201).json(populatedComment);
@@ -50,7 +50,7 @@ export const getComments = async (req, res) => {
     const itemId = req.params.id;
 
     const comments = await Comment.find({ item: itemId })
-      .populate("user", "name email")
+      .populate("user", "name email profilePicture")
       .sort({ createdAt: -1 }); // Newest first
 
     res.json(comments);

@@ -1,5 +1,6 @@
 import Claim from "../models/claim.js";
 import Item from "../models/item.js";
+import Chat from "../models/chat.js";
 import { sendEmail } from "../utils/email.js";
 
 // @desc    Create a claim
@@ -30,6 +31,7 @@ export const createClaim = async (req, res) => {
       item: itemId,
       claimant: req.user._id,
       message: Array.isArray(answers) ? answers.join('\n') : answers,
+      proof: req.body.proof,
       status: "pending",
     });
 
@@ -94,19 +96,84 @@ export const updateClaimStatus = async (req, res) => {
       return res.status(404).json({ message: "Claim not found" });
     }
 
+    const item = await Item.findById(claim.item);
+    if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+    }
+
+    // Ensure user is the Finder
+    if (item.user.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "Not authorized to manage claims for this item" });
+    }
+
     claim.status = status;
     await claim.save();
 
-    // If approved, mark item as claimed/resolved
+    // If approved, mark item as in_progress and create chat
     if (status === "approved") {
       const item = await Item.findById(claim.item);
       if (item) {
-        item.status = "claimed";
+        item.status = "in_progress";
         await item.save();
+
+        // Reject all other pending claims for this item
+        await Claim.updateMany(
+          { item: item._id, _id: { $ne: claim._id }, status: "pending" },
+          { $set: { status: "rejected" } }
+        );
+
+        // Create or get chat between finder (req.user) and claimant
+        let chat = await Chat.findOne({
+          item: item._id,
+          participants: { $all: [req.user._id, claim.claimant] },
+        });
+
+        if (!chat) {
+          chat = await Chat.create({
+            item: item._id,
+            participants: [req.user._id, claim.claimant],
+            messages: [],
+          });
+        }
       }
     }
 
     res.json(claim);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Resolve a claim (item returned)
+// @route   PUT /api/claims/:id/resolve
+// @access  Private (Finder)
+export const resolveClaim = async (req, res) => {
+  try {
+    const claim = await Claim.findById(req.params.id);
+    if (!claim) {
+      return res.status(404).json({ message: "Claim not found" });
+    }
+
+    const item = await Item.findById(claim.item);
+    if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+    }
+
+    // Verify user is the Finder (Item owner)
+    if (item.user.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "Not authorized to resolve this claim" });
+    }
+
+    // Update claim
+    claim.status = "completed";
+    claim.resolvedAt = Date.now();
+    await claim.save();
+
+    // Update item
+    item.status = "resolved";
+    await item.save();
+
+    res.json({ message: "Item marked as returned and claim resolved", claim, item });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -165,6 +232,33 @@ export const deleteClaim = async (req, res) => {
     await claim.deleteOne();
 
     res.json({ message: "Claim deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get claims for a specific item (for Finder)
+// @route   GET /api/claims/item/:itemId
+// @access  Private
+export const getClaimsByItem = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    
+    const item = await Item.findById(itemId);
+    if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+    }
+
+    // Ensure user is the Finder
+    if (item.user.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "Not authorized to view claims for this item" });
+    }
+
+    const claims = await Claim.find({ item: itemId })
+      .populate("claimant", "name email profilePicture")
+      .sort({ createdAt: -1 });
+
+    res.json(claims);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

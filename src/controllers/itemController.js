@@ -27,6 +27,28 @@ export const createItem = async (req, res) => {
         coordinates: [location.lng, location.lat],
         address: location.address || location.area
       };
+
+      // Server-side Geocoding to persist City Name
+      try {
+        // Using global fetch (Node 18+)
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.lat}&lon=${location.lng}`, {
+            headers: { 'User-Agent': 'ReclaimApp/1.0' } // Good practice for OSM
+        });
+        const geoData = await geoRes.json();
+        const addr = geoData.address;
+        if (addr) {
+            locObj.city = addr.city || 
+                          addr.town || 
+                          addr.village || 
+                          addr.municipality || 
+                          addr.city_district || 
+                          addr.suburb || 
+                          addr.neighbourhood || 
+                          addr.county;
+        }
+      } catch (geoErr) {
+        console.error("Server-side geocoding failed:", geoErr);
+      }
     }
 
     const item = await Item.create({
@@ -62,7 +84,7 @@ export const createItem = async (req, res) => {
                         $maxDistance: 5000 // 5km radius for notifications
                     }
                 }
-            }).populate('user');
+            }).populate('user', 'name email profilePicture');
 
             for (const match of potentialMatches) {
                 if (match.user && match.user.email) {
@@ -141,7 +163,7 @@ export const getItems = async (req, res) => {
     }
 
     const items = await Item.find(query)
-      .populate("user", "name")
+      .populate("user", "name profilePicture")
       .sort({ createdAt: -1 });
 
     res.json(items);
@@ -155,7 +177,7 @@ export const getItemById = async (req, res) => {
   try {
     const item = await Item.findById(req.params.id).populate(
       "user",
-      "name email"
+      "name email profilePicture"
     );
 
     if (!item) {

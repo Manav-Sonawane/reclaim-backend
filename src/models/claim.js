@@ -5,12 +5,13 @@ const claimSchema = new mongoose.Schema({
   claimant: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   status: { 
     type: String, 
-    enum: ['pending', 'approved', 'rejected'], 
+    enum: ['pending', 'approved', 'rejected', 'completed'], 
     default: 'pending' 
   },
   proof: { type: String }, // URL to image/doc proving ownership
   message: { type: String },
-  response: { type: String } // Admin/Finder response
+  response: { type: String }, // Admin/Finder response
+  resolvedAt: { type: Date }
 }, { timestamps: true });
 
 export default mongoose.model('Claim', claimSchema);

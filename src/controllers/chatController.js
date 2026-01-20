@@ -7,7 +7,7 @@ import Item from "../models/item.js";
 export const getMyChats = async (req, res) => {
   try {
     const chats = await Chat.find({ participants: req.user._id })
-      .populate("participants", "name email avatar")
+      .populate("participants", "name email profilePicture")
       .populate("item", "title images")
       .sort({ updatedAt: -1 });
     res.json(chats);
@@ -38,7 +38,7 @@ export const createOrGetChat = async (req, res) => {
       item: itemId,
       participants: { $all: [req.user._id, item.user] },
     })
-      .populate("participants", "name")
+      .populate("participants", "name profilePicture")
       .populate("item", "title");
 
     if (existingChat) {
@@ -56,7 +56,7 @@ export const createOrGetChat = async (req, res) => {
 
     // Populate before returning
     const fullChat = await Chat.findById(createdChat._id)
-      .populate("participants", "name")
+      .populate("participants", "name profilePicture")
       .populate("item", "title");
 
     res.status(201).json(fullChat);
@@ -71,7 +71,7 @@ export const createOrGetChat = async (req, res) => {
 export const getChatById = async (req, res) => {
   try {
     const chat = await Chat.findById(req.params.id)
-      .populate("participants", "name email")
+      .populate("participants", "name email profilePicture")
       .populate("item", "title images type")
       .populate("messages.sender", "name");
 

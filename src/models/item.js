@@ -38,15 +38,12 @@ const itemSchema = new mongoose.Schema(
         required: true,
       }, // [lng, lat]
       address: { type: String },
+      city: { type: String },
     },
-    images: [
-      {
-        type: String, // URL (R2)
-      },
-    ],
+    images: [String],
     status: {
-      type: String, // 'open', 'matched', 'claimed', 'resolved'
-      enum: ["open", "matched", "claimed", "resolved"],
+      type: String, // 'open', 'matched', 'in_progress', 'claimed', 'resolved'
+      enum: ["open", "matched", "in_progress", "claimed", "resolved"],
       default: "open",
     },
     user: {
