@@ -8,7 +8,8 @@ router.get("/me", protect, (req, res) => {
 });
 
 // Update profile
-import { updateProfile } from "../controllers/authController.js";
+import { updateProfile, getUserById } from "../controllers/authController.js";
 router.put("/profile", protect, updateProfile);
+router.get("/:id", getUserById);
 
 export default router;

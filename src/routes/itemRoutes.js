@@ -5,6 +5,7 @@ import {
   getItemById,
   getItemMatches,
   getMyItems,
+  getItemsByUser,
   deleteItem,
   voteItem,
 } from "../controllers/itemController.js";
@@ -19,6 +20,7 @@ const router = express.Router();
 router.post("/", protect, createItem);
 router.get("/", getItems);
 router.get("/user/me", protect, getMyItems);
+router.get("/user/:userId", getItemsByUser);
 router.get("/:id", getItemById);
 router.get("/:id/matches", getItemMatches);
 router.delete("/:id", protect, deleteItem);

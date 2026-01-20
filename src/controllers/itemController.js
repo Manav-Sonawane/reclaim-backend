@@ -1,4 +1,5 @@
 import Item from "../models/item.js";
+import Claim from "../models/claim.js";
 import { sendEmail } from "../utils/email.js";
 
 // CREATE ITEM
@@ -226,10 +227,33 @@ export const getItemMatches = async (req, res) => {
 export const getMyItems = async (req, res) => {
   try {
     const items = await Item.find({ user: req.user._id }).sort({ createdAt: -1 });
-    res.json(items);
+
+    // Populate claim counts for each item
+    const itemsWithClaims = await Promise.all(items.map(async (item) => {
+        const claimCount = await Claim.countDocuments({ item: item._id, status: 'pending' });
+        return {
+            ...item.toObject(),
+            claimCount
+        };
+    }));
+
+    res.json(itemsWithClaims);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+// GET ITEMS BY USER (Public Profile)
+export const getItemsByUser = async (req, res) => {
+    try {
+        const items = await Item.find({ 
+            user: req.params.userId,
+            status: { $in: ['open', 'matched', 'in_progress'] } // Active items only
+        }).sort({ createdAt: -1 });
+        res.json(items);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
 
 // DELETE ITEM
