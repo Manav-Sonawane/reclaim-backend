@@ -39,6 +39,7 @@ export const registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        profilePicture: user.profilePicture,
       },
     });
   } catch (err) {
@@ -68,6 +69,7 @@ export const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        profilePicture: user.profilePicture,
       },
     });
   } catch (err) {
@@ -92,16 +94,16 @@ export const googleAuth = async (req, res) => {
     console.log("Request body:", JSON.stringify(req.body, null, 2));
     console.log("Request headers:", JSON.stringify(req.headers, null, 2));
     console.log("Content-Type:", req.headers['content-type']);
-    
+
     const { token, credential, idToken } = req.body;
-    
+
     // Accept token from multiple field names for flexibility
     const googleToken = token || credential || idToken;
 
     if (!googleToken) {
       console.log("❌ Token missing from request");
       console.log("Received fields:", Object.keys(req.body));
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "Google token required. Expected field: 'token', 'credential', or 'idToken'",
         receivedFields: Object.keys(req.body),
         hint: "Make sure you're sending the Google ID token in the request body"
@@ -118,7 +120,7 @@ export const googleAuth = async (req, res) => {
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, picture } = payload;
-    
+
     console.log("✓ Token verified for user:", email);
 
     // Check if user exists
@@ -135,7 +137,7 @@ export const googleAuth = async (req, res) => {
       // New User Logic
       // If a custom name is NOT provided in the request, ask frontend to get it
       const { name: customName } = req.body;
-      
+
       if (!customName) {
         return res.status(200).json({
           requiresSignup: true,
@@ -170,5 +172,35 @@ export const googleAuth = async (req, res) => {
   } catch (err) {
     console.error("Google auth error:", err);
     res.status(500).json({ message: "Google authentication failed" });
+  }
+};
+// UPDATE USER PROFILE
+export const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (user) {
+      user.name = req.body.name || user.name;
+      user.profilePicture = req.body.profilePicture || user.profilePicture;
+
+      if (req.body.password) {
+        user.password = await bcrypt.hash(req.body.password, 10);
+      }
+
+      const updatedUser = await user.save();
+
+      res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        profilePicture: updatedUser.profilePicture,
+        token: generateToken(updatedUser._id),
+      });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

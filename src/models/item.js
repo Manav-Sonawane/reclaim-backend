@@ -55,6 +55,18 @@ const itemSchema = new mongoose.Schema(
       required: true,
     },
     contact_info: { type: String }, // Optional: phone or email
+    upvotes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    downvotes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true }
 );

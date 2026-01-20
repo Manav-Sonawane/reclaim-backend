@@ -18,15 +18,15 @@ export const createItem = async (req, res) => {
     // Construct GeoJSON location if lat/lng provided in different format, 
     // but here we expect the frontend to send the structure we need or we adapt it.
     // Based on the updated model, we need { type: 'Point', coordinates: [lng, lat], address }
-    
+
     // Check if location comes as flat lat/lng or object
     let locObj = location;
     if (location && location.lat && location.lng) {
-        locObj = {
-            type: "Point",
-            coordinates: [location.lng, location.lat],
-            address: location.address || location.area
-        };
+      locObj = {
+        type: "Point",
+        coordinates: [location.lng, location.lat],
+        address: location.address || location.area
+      };
     }
 
     const item = await Item.create({
@@ -101,22 +101,22 @@ export const getItems = async (req, res) => {
 
     // Partial match for location address if provided (and no box/coords)
     if (location && !box) {
-        query["location.address"] = { $regex: location, $options: "i" };
+      query["location.address"] = { $regex: location, $options: "i" };
     }
 
     // Geospatial Bounding Box Search (Subset Check)
     // Expects box=south,west,north,east
     if (box) {
-        const [south, west, north, east] = box.split(',').map(Number);
-        query.location = {
-            ...query.location,
-            $geoWithin: {
-                $box: [
-                    [west, south], // Bottom-Left (MinLng, MinLat)
-                    [east, north]  // Top-Right (MaxLng, MaxLat)
-                ]
-            }
-        };
+      const [south, west, north, east] = box.split(',').map(Number);
+      query.location = {
+        ...query.location,
+        $geoWithin: {
+          $box: [
+            [west, south], // Bottom-Left (MinLng, MinLat)
+            [east, north]  // Top-Right (MaxLng, MaxLat)
+          ]
+        }
+      };
     } else if (lat && lng) {
       // Legacy or "Near Me" radius support
       const distanceInMeters = (radius || 5) * 1000;
@@ -202,13 +202,13 @@ export const getItemMatches = async (req, res) => {
 
 // MY ITEMS
 export const getMyItems = async (req, res) => {
-    try {
-      const items = await Item.find({ user: req.user._id }).sort({ createdAt: -1 });
-      res.json(items);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  };
+  try {
+    const items = await Item.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // DELETE ITEM
 export const deleteItem = async (req, res) => {
@@ -228,5 +228,61 @@ export const deleteItem = async (req, res) => {
     res.json({ message: "Item removed" });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+// VOTE ITEM
+export const voteItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { voteType } = req.body; // 'up' or 'down'
+    const userId = req.user._id;
+
+    const item = await Item.findById(id);
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    // Initialize arrays if they don't exist (safety)
+    if (!item.upvotes) item.upvotes = [];
+    if (!item.downvotes) item.downvotes = [];
+
+    const isUpvoted = item.upvotes.includes(userId);
+    const isDownvoted = item.downvotes.includes(userId);
+
+    if (voteType === "up") {
+      if (isUpvoted) {
+        // Toggle off
+        item.upvotes.pull(userId);
+      } else {
+        // Remove downvote if exists
+        if (isDownvoted) item.downvotes.pull(userId);
+        // Add upvote
+        item.upvotes.push(userId);
+      }
+    } else if (voteType === "down") {
+      if (isDownvoted) {
+        // Toggle off
+        item.downvotes.pull(userId);
+      } else {
+        // Remove upvote if exists
+        if (isUpvoted) item.upvotes.pull(userId);
+        // Add downvote
+        item.downvotes.push(userId);
+      }
+    } else {
+      return res.status(400).json({ message: "Invalid vote type" });
+    }
+
+    await item.save();
+
+    // Return the updated arrays so frontend can calculate count
+    res.json({
+      upvotes: item.upvotes,
+      downvotes: item.downvotes
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

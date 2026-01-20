@@ -6,6 +6,7 @@ import {
   getItemMatches,
   getMyItems,
   deleteItem,
+  voteItem,
 } from "../controllers/itemController.js";
 import {
   addComment,
@@ -21,6 +22,7 @@ router.get("/user/me", protect, getMyItems);
 router.get("/:id", getItemById);
 router.get("/:id/matches", getItemMatches);
 router.delete("/:id", protect, deleteItem);
+router.post("/:id/vote", protect, voteItem);
 
 // Comment routes
 router.post("/:id/comments", protect, addComment);

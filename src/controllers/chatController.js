@@ -100,15 +100,37 @@ export const getUnreadCount = async (req, res) => {
   try {
     const hasUnread = await Chat.exists({
       participants: req.user._id,
-      messages: { 
-        $elemMatch: { 
-          sender: { $ne: req.user._id }, 
-          read: false 
-        } 
+      messages: {
+        $elemMatch: {
+          sender: { $ne: req.user._id },
+          read: false
+        }
       }
     });
 
     res.json({ hasUnread: !!hasUnread });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// @desc    Mark chat messages as read
+// @route   PUT /api/chats/:id/read
+// @access  Private
+export const markChatRead = async (req, res) => {
+  try {
+    await Chat.updateOne(
+      { _id: req.params.id },
+      {
+        $set: {
+          "messages.$[elem].read": true,
+        },
+      },
+      {
+        arrayFilters: [{ "elem.sender": { $ne: req.user._id }, "elem.read": false }],
+      }
+    );
+
+    res.json({ message: "Messages marked as read" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

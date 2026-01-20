@@ -10,7 +10,7 @@ export const createClaim = async (req, res) => {
     const { itemId, answers } = req.body;
 
     // Check if item exists
-    const item = await Item.findById(itemId).populate('user'); // Populate owner to get email
+    const item = await Item.findById(itemId).populate('user'); // Populate owner
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
     }
