@@ -6,6 +6,7 @@ import itemRoutes from "./routes/itemRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import claimRoutes from "./routes/claimRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
@@ -28,6 +29,7 @@ app.use("/api/items", itemRoutes);
 app.use("/api/items", matchRoutes); 
 app.use("/api/chats", chatRoutes);
 app.use("/api/claims", claimRoutes);
+app.use("/api/ai", aiRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/admin", adminRoutes);
 

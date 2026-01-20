@@ -39,6 +39,8 @@ const itemSchema = new mongoose.Schema(
       }, // [lng, lat]
       address: { type: String },
       city: { type: String },
+      state: { type: String },
+      country: { type: String },
     },
     images: [String],
     status: {

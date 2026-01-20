@@ -47,6 +47,8 @@ export const createItem = async (req, res) => {
                           addr.suburb || 
                           addr.neighbourhood || 
                           addr.county;
+            locObj.state = addr.state || addr.region || addr.province;
+            locObj.country = addr.country;
         }
       } catch (geoErr) {
         console.error("Server-side geocoding failed:", geoErr);
@@ -112,7 +114,7 @@ export const createItem = async (req, res) => {
 // GET ALL ITEMS
 export const getItems = async (req, res) => {
   try {
-    const { type, category, lat, lng, radius, search, location, box } = req.query;
+    const { type, category, lat, lng, radius, search, location, box, country, state, city } = req.query;
     let query = { status: "open" };
 
     if (type && type !== "all") {
@@ -126,6 +128,17 @@ export const getItems = async (req, res) => {
     // Partial match for location address if provided (and no box/coords)
     if (location && !box) {
       query["location.address"] = { $regex: location, $options: "i" };
+    }
+
+    // Structured Location Filters
+    if (country) {
+        query["location.country"] = { $regex: country, $options: "i" };
+    }
+    if (state) {
+        query["location.state"] = { $regex: state, $options: "i" };
+    }
+    if (city) {
+        query["location.city"] = { $regex: city, $options: "i" };
     }
 
     // Geospatial Bounding Box Search (Subset Check)
