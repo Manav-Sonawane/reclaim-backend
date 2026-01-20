@@ -16,6 +16,11 @@ export const createClaim = async (req, res) => {
       return res.status(404).json({ message: "Item not found" });
     }
 
+    // Check if user is the owner (Self-Claim)
+    if (item.user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: "You cannot claim your own item" });
+    }
+
     // Check if already claimed by user
     const existingClaim = await Claim.findOne({
       item: itemId,
@@ -35,13 +40,26 @@ export const createClaim = async (req, res) => {
       status: "pending",
     });
 
-    // Notify the item owner (the 'Finder') that someone is claiming it
+    // Notify the item owner (the 'Finder' or 'Poster') that someone is claiming it
     if (item.user && item.user.email) {
+        // If I posted a LOST item, the person contacting me is a Potential FINDER.
+        // If I posted a FOUND item, the person contacting me is a Potential OWNER.
+        const roleLabel = item.type === 'lost' ? 'Potential Finder' : 'Potential Owner';
+        
         await sendEmail({
             to: item.user.email,
-            subject: `New Claim on your item: ${item.title}`,
-            text: `Hello ${item.user.name},\n\nSomeone has raised a claim on the item you found: "${item.title}".\n\nLogin to Reclaim to review their proof and approve/reject the claim.\n\nBest,\nReclaim Team`,
-            html: `<p>Hello <strong>${item.user.name}</strong>,</p><p>Someone has raised a claim on the item you found: <strong>"${item.title}"</strong>.</p><p><a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/dashboard">Login to Reclaim</a> to review their proof and approve/reject the claim.</p><p>Best,<br>Reclaim Team</p>`
+            subject: `Good News! Your Item has a ${roleLabel}`,
+            text: `Hello ${item.user.name},\n\nGreat news! User ${req.user.name} has reached out regarding your item "${item.title}".\n\nThey might be the ${roleLabel} you are looking for.\n\nLogin to Reclaim to connect with them and verify details.\n\nBest,\nReclaim Team`,
+            html: `<div style="font-family: sans-serif; color: #333;">
+                    <h2>Good News!</h2>
+                    <p>Hello <strong>${item.user.name}</strong>,</p>
+                    <p>Great news! User <strong>${req.user.name}</strong> has reached out regarding your item <strong>"${item.title}"</strong>.</p>
+                    <p>They might be the <strong>${roleLabel}</strong> you are looking for.</p>
+                    <p style="margin: 20px 0;">
+                        <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/dashboard" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Request on Reclaim</a>
+                    </p>
+                    <p style="color: #666; font-size: 0.9em;">Best,<br>Reclaim Team</p>
+                   </div>`
         });
     }
 
@@ -178,15 +196,15 @@ export const resolveClaim = async (req, res) => {
     }
 
     // Update claim
-    claim.status = "completed";
+    claim.status = "retrieved";
     claim.resolvedAt = Date.now();
     await claim.save();
 
     // Update item
-    item.status = "resolved";
+    item.status = "retrieved";
     await item.save();
 
-    res.json({ message: "Item marked as returned and claim resolved", claim, item });
+    res.json({ message: "Item marked as retrieved and claim resolved", claim, item });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

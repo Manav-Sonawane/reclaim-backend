@@ -2,6 +2,7 @@ import User from "../models/user.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
+import { sendEmail } from "../utils/email.js";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -30,6 +31,14 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+    });
+
+    // Send Welcome Email
+    await sendEmail({
+      to: user.email,
+      subject: "Welcome to Reclaim!",
+      text: `Hi ${user.name},\n\nWelcome to Reclaim! We're glad to have you.\n\nStart reporting lost or found items today.\n\nBest,\nReclaim Team`,
+      html: `<p>Hi <strong>${user.name}</strong>,</p><p>Welcome to Reclaim! We're glad to have you.</p><p>Start reporting lost or found items today.</p><p>Best,<br>Reclaim Team</p>`
     });
 
     res.status(201).json({

@@ -5,7 +5,7 @@ const claimSchema = new mongoose.Schema({
   claimant: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   status: { 
     type: String, 
-    enum: ['pending', 'approved', 'rejected', 'completed'], 
+    enum: ['pending', 'approved', 'rejected', 'completed', 'retrieved'], 
     default: 'pending' 
   },
   proof: { type: String }, // URL to image/doc proving ownership

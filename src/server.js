@@ -1,10 +1,8 @@
+import "dotenv/config";
 import http from "http";
 import app from "./app.js";
 import connectDB from "./config/db.js";
 import { initSocket } from "./sockets/index.js";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 import { Server } from "socket.io";
 import Chat from "./models/chat.js";

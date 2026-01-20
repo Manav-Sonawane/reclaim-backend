@@ -1,5 +1,6 @@
 import Item from "../models/item.js";
 import Claim from "../models/claim.js";
+import Chat from "../models/chat.js";
 import { sendEmail } from "../utils/email.js";
 
 // CREATE ITEM
@@ -271,6 +272,11 @@ export const deleteItem = async (req, res) => {
     }
 
     await item.deleteOne();
+
+    // Cascading Delete: Remove all claims and chats associated with this item
+    await Claim.deleteMany({ item: req.params.id });
+    await Chat.deleteMany({ item: req.params.id });
+
     res.json({ message: "Item removed" });
   } catch (err) {
     res.status(500).json({ message: err.message });

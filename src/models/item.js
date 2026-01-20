@@ -42,8 +42,8 @@ const itemSchema = new mongoose.Schema(
     },
     images: [String],
     status: {
-      type: String, // 'open', 'matched', 'in_progress', 'claimed', 'resolved'
-      enum: ["open", "matched", "in_progress", "claimed", "resolved"],
+      type: String, // 'open', 'matched', 'in_progress', 'claimed', 'resolved', 'retrieved'
+      enum: ["open", "matched", "in_progress", "claimed", "resolved", "retrieved"],
       default: "open",
     },
     user: {
