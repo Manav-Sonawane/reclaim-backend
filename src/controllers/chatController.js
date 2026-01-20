@@ -35,7 +35,6 @@ export const createOrGetChat = async (req, res) => {
     // Check if chat already exists between these users for this item
     // Assuming 2 participants: current user and item owner
     const existingChat = await Chat.findOne({
-      item: itemId,
       participants: { $all: [req.user._id, item.user] },
     })
       .populate("participants", "name profilePicture")
