@@ -16,8 +16,8 @@ export const searchItemsAI = async (req, res) => {
         throw new Error("GEMINI_API_KEY is missing from environment.");
     }
 
-    // Using 'gemini-flash-latest' which was confirmed in the models list
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    // Using 'gemini-2.0-flash' which is verified to exist (though careful with rate limits)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // 2. Define prompt to extract structure
     const prompt = `
@@ -45,8 +45,27 @@ export const searchItemsAI = async (req, res) => {
       }
     `;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    // Helper for fallback generation
+    const generateWithFallback = async (prompt) => {
+        try {
+            // Try primary key
+            const result = await model.generateContent(prompt);
+            return await result.response;
+        } catch (error) {
+            if (process.env.GEMINI_API_KEY_2) {
+                console.warn("Primary Gemini Key failed, trying fallback...", error.message);
+                const genAI2 = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_2);
+                const model2 = genAI2.getGenerativeModel({ model: "gemini-2.0-flash" });
+                const result = await model2.generateContent(prompt);
+                return await result.response;
+            } else {
+                throw error;
+            }
+        }
+    };
+
+    const response = await generateWithFallback(prompt);
+    const responseText = response.text();
     console.log("Gemini Raw Response:", responseText); // Debug Log
     
     // Clean markdown if present
@@ -101,8 +120,8 @@ export const searchItemsAI = async (req, res) => {
       Do not include JSON, just plain text or markdown.
     `;
 
-    const summaryResult = await model.generateContent(summaryPrompt);
-    const summaryText = summaryResult.response.text();
+    const summaryResponse = await generateWithFallback(summaryPrompt);
+    const summaryText = summaryResponse.text();
 
     res.json({
         filters,
@@ -111,10 +130,22 @@ export const searchItemsAI = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("AI Search Error:", error);
-    res.status(500).json({ 
-        message: "Failed to process AI search.",
-        error: error.message 
+    console.error("AI Search Error:", error.message);
+    
+    // Check if it's a rate limit or overload
+    if (error.message.includes('429') || error.message.includes('503')) {
+        return res.json({
+            filters: {},
+            items: [],
+            message: "I'm currently receiving too many requests. Please try again in a minute!"
+        });
+    }
+
+    // Attempt to handle other errors gracefully by returning a message
+    res.json({
+        filters: {},
+        items: [],
+        message: "Sorry, I encountered an issue processing your request. Please try again."
     });
   }
 };
